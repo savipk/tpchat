@@ -1,0 +1,24 @@
+{
+  "jobReferenceNumber": "3286618BR",
+  "title": "Java Technical Lead",
+  "country": "United States",
+  "location": "Weehawken, New Jersey",
+  "businessDivision": "Group Functions",
+  "businessArea": "GOTO Technology (181522)",
+  "businessSector": "GOTO-WMA-STAAT-Field Solutions (631827)",
+  "businessDivisionCode": "GOTO-WMA-STAAT-Field Platforms (N293533)",
+  "businessSectorCode": "GOTO-WMA-STAAT-Field Solutions (N292344)",
+  "gcrsRoleFamily": "Technical Java Lead",
+  "rank": "DI Director",
+  "summary": "Bachelor’s degree in Computer Science or related engineering or technical fields with ideally 10+ years of relevant Java experience and excellent understanding of complex communication systems including architecture and design. Strong knowledge in Software Engineering with Java, ReactJS and .NET technologies and experience in designing secure, robust, and scalable frontend and backend applications.",
+  "yourRole": "Are you passionate about bringing systems to life? Do you have a curious nature, always interested in how to innovate? We're looking for someone like that to help us lead a team to help analyze and understand business and technical stories, write code, implement automated tests, contribute to release and iteration planning, and develop & streamline the working practices of our team. Manage risk from environment, dependencies, and external products. Analyze detailed requirements based upon user interviews and systems/data analysis, and complete the unit testing of components for integration into larger subsystems. Support the business to resolve high-priority defects and deploy fixes to production. Make sure the produced code is maintainable before being handed over to production support teams. Proactively investigate and propose new technologies for use within the department. Contribute widely in establishing and promoting best practices. The salary range for this role is $158,000 to $250,000 with expected salary ranges based on factors including, but not limited to, experience, qualifications, education, location, and skills. For benefits information, please visit ubs.com/usbenefits.",
+  "combinedContent": "Bachelor’s degree in Computer Science or related engineering or technical fields with ideally 10+ years of relevant Java experience and excellent understanding of complex communication systems including architecture and design. Strong knowledge in Software Engineering with Java, ReactJS and .NET technologies and experience in designing secure, robust, and scalable frontend and backend applications. Demonstrable experience in application development including analyzing stories, writing code, implementing automated tests, contributing to release and iteration planning, and developing working practices of the team. Strong analytical, problem-solving and communication skills (you know how to solve problems and are comfortable working independently as well as part of a team). Proficient understanding of software development methodologies. Exposure to Microsoft 365 application suite, including Teams and SharePoint. Confident communicator, adaptable, able to work across teams and functions. Comfortable working with key business and technology stakeholders. We are looking for an experienced Java Technical Lead who will be working within the Global Wealth Management (GWM) team developing analytical tools and solutions for Financial Advisors and their clients. These solutions are used by thousands of UBS Financial Advisors and internal staff daily to manage relationships, portfolios, and deliver holistic advice. You’ll be part of the Wealth Management Americas Technology team delivering data and insights to our business and clients in real time. The role is based in Weehawken, NJ.",
+  "requirements": [
+    "Bachelor’s degree required",
+    "10+ years Java experience",
+    "Strong technical skills in Java, ReactJS, and .NET",
+    "Excellent understanding of system architecture and design",
+    "Strong communication and collaboration abilities"
+  ],
+  "qualificationsRequired": true
+}

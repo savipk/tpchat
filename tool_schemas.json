@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MyCareer Agentic Tools Schema",
+  "type": "object",
+  "properties": {
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "input_schema": { "type": "object" },
+          "output_schema": { "type": "object" }
+        },
+        "required": ["name", "input_schema", "output_schema"]
+      }
+    }
+  },
+  "required": ["tools"],
+  "tools": [
+    {
+      "name": "profile_analyzer",
+      "description": "Analyzes user's profile to detect gaps and suggest next actions.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "profile": { "type": "object" },
+          "completion_threshold": { "type": "integer", "default": 80 }
+        },
+        "required": ["profile"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "completionScore": { "type": "number" },
+          "missingSections": { "type": "array", "items": { "type": "string" } },
+          "insights": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "area": { "type": "string" },
+                "observation": { "type": "string" },
+                "action": { "type": "string" },
+                "recommendation": { "type": "string" }
+              }
+            }
+          },
+          "nextActions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "tool": { "type": "string" },
+                "priority": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "required": ["completionScore", "missingSections", "nextActions"]
+      }
+    },
+    {
+      "name": "upload_resume",
+      "description": "Uploads and stores resume file for a user session.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "file_name": { "type": "string" },
+          "mime_type": { "type": "string" },
+          "size": { "type": "integer" },
+          "content_b64": { "type": "string", "description": "Base64-encoded resume" }
+        },
+        "required": ["file_name", "content_b64"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "resume_id": { "type": "string" },
+          "stored": { "type": "boolean" }
+        },
+        "required": ["resume_id", "stored"]
+      }
+    },
+    {
+      "name": "parse_resume",
+      "description": "Parses uploaded resume to extract profile data and inferred attributes.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "resume_id": { "type": "string" }
+        },
+        "required": ["resume_id"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "parsedFields": { "type": "object" },
+          "skills_extracted": { "type": "array", "items": { "type": "string" } },
+          "summary_text": { "type": "string" }
+        },
+        "required": ["parsedFields"]
+      }
+    },
+    {
+      "name": "update_profile_field",
+      "description": "Updates a specific field in user profile.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" },
+          "value": {},
+          "reason": { "type": "string" }
+        },
+        "required": ["path", "value"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" },
+          "new_version": { "type": "integer" }
+        },
+        "required": ["ok"]
+      }
+    },
+    {
+      "name": "infer_skills",
+      "description": "Infers skills from existing profile using embeddings or rules.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "profile_snapshot_id": { "type": "string" }
+        },
+        "required": ["profile_snapshot_id"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "topSkills": { "type": "array", "items": { "type": "string" } },
+          "additionalSkills": { "type": "array", "items": { "type": "string" } },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["topSkills"]
+      }
+    },
+    {
+      "name": "set_preferences",
+      "description": "Sets or updates user career preferences such as roles, locations, and levels.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "prefs": {
+            "type": "object",
+            "properties": {
+              "locations": { "type": "array", "items": { "type": "string" } },
+              "role_families": { "type": "array", "items": { "type": "string" } },
+              "work_mode": { "type": "string" },
+              "level": { "type": "string" },
+              "salary_expectation": { "type": "string" }
+            }
+          }
+        },
+        "required": ["prefs"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" }
+        },
+        "required": ["ok"]
+      }
+    },
+    {
+      "name": "get_matches",
+      "description": "Retrieves top job matches for a profile using hybrid search and scoring.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "top_k": { "type": "integer", "default": 5 },
+          "filters": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "jobId": { "type": "string" },
+                "score": { "type": "number" },
+                "why": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "required": ["matches"]
+      }
+    },
+    {
+      "name": "present_matches",
+      "description": "Formats job matches into cards or summaries.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "matches": { "type": "array" }
+        },
+        "required": ["matches"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "cards": { "type": "array", "items": { "type": "object" } }
+        },
+        "required": ["cards"]
+      }
+    },
+    {
+      "name": "ask_jd_qa",
+      "description": "Answers questions about a job posting via RAG pipeline.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": { "type": "string" },
+          "question": { "type": "string" }
+        },
+        "required": ["job_id", "question"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "answer": { "type": "string" },
+          "citations": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["answer"]
+      }
+    },
+    {
+      "name": "draft_hm_email",
+      "description": "Drafts an email to the hiring manager for a job posting.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": { "type": "string" },
+          "tone": { "type": "string", "enum": ["formal", "friendly", "concise"], "default": "formal" },
+          "bullets_from_profile": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["job_id"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "subject": { "type": "string" },
+          "body": { "type": "string" }
+        },
+        "required": ["subject", "body"]
+      }
+    },
+    {
+      "name": "apply_internal_job",
+      "description": "Applies internally for a given job (mock for PoC).",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": { "type": "string" }
+        },
+        "required": ["job_id"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" },
+          "application_id": { "type": "string" }
+        },
+        "required": ["ok"]
+      }
+    }
+  ]
+}
