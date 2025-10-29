@@ -76,7 +76,7 @@ async def render_result(result: Dict[str, Any]):
 # -----------------------------
 @cl.on_chat_start
 async def start():
-    await cl.Message(content="👋 Welcome to *MyCareer Agentic Chat Prototype*!").send()
+    await cl.Message(content="Welcome to *MyCareer Agentic Chat*!").send()
     profile = load_profile()
     session_state["profile"] = profile
     result = profile_analyzer(profile)
@@ -86,7 +86,7 @@ async def start():
 
 @cl.action_callback("infer_skills")
 async def on_infer_skills(action):
-    await cl.Message(content="🔍 Inferring skills based on your profile... (mock)").send()
+    await cl.Message(content="Inferring skills based on your profile...").send()
     # Mock update: pretend skills added
     session_state["profile"]["core"]["skills"] = {
         "topSkills": ["Leadership", "Java", "Compliance"]
@@ -98,7 +98,7 @@ async def on_infer_skills(action):
 
 @cl.action_callback("set_preferences")
 async def on_set_preferences(action):
-    await cl.Message(content="🧭 Setting career preferences... (mock step)").send()
+    await cl.Message(content="Setting career preferences...").send()
     # Mock update
     session_state["profile"]["core"]["careerAspirationPreference"] = {"preferredAspirations": []}
     session_state["profile"]["core"]["careerLocationPreference"] = {"preferredRelocationRegions": []}
@@ -109,7 +109,7 @@ async def on_set_preferences(action):
 
 @cl.action_callback("get_matches")
 async def on_get_matches(action):
-    await cl.Message(content="🎯 Finding top job matches... (mock)").send()
+    await cl.Message(content="Finding top job matches...").send()
     # Mock results
     matches = [
         {
@@ -127,39 +127,55 @@ async def on_get_matches(action):
     await cl.Message(content=md).send()
 
     actions = [
-        cl.Action(name="ask_jd_qa", value="Ask about this Job", label="Ask about this Job"),
-        cl.Action(name="draft_hm_email", value="Draft Email to Hiring Manager", label="Draft Email to Hiring Manager")
+        cl.Action(
+            name="ask_jd_qa",
+            payload={"title": "Ask about this Job"},
+            display_name="Ask about this Job"
+        ),
+        cl.Action(
+            name="draft_hm_email",
+            payload={"title": "Draft Email to Hiring Manager"},
+            display_name="Draft Email to Hiring Manager"
+        )
     ]
-    await cl.ActionMessage(content="Next steps:", actions=actions).send()
+
+    await cl.Message(content="Next steps:", actions=actions).send()
+
 
 
 @cl.action_callback("ask_jd_qa")
 async def on_jd_qa(action):
     await cl.Message(
-        content="💬 You can ask any question about the job. Example: *What tech stack does this team use?*\n(This step will connect to job RAG later.)"
+        content="You can ask any question about the job. Example: *What tech stack does this team use?*"
     ).send()
 
 
 @cl.action_callback("draft_hm_email")
 async def on_hm_email(action):
     md = (
-        "✉️ Here's a draft email:\n\n"
+        "Here's a draft email:\n\n"
         "**Subject:** Interest in Java Technical Lead role\n\n"
         "**Body:**\n"
         "Dear Hiring Manager,\n\n"
         "I came across the Java Technical Lead opening and found a strong alignment with my background in compliance and technology leadership.\n"
-        "I’d be delighted to discuss how I can contribute to your team.\n\n"
-        "Best regards,\nTravis Wilson"
+        "I'd be delighted to discuss how I can contribute to your team.\n\n"
+        "Best regards,\nJohn Doe"
     )
     await cl.Message(content=md).send()
 
-    await cl.ActionMessage(
-        content="Would you like to apply?",
-        actions=[cl.Action(name="apply_internal_job", value="Apply", label="Apply for this Job")]
-    ).send()
+    actions = [
+        cl.Action(
+            name="apply_internal_job",
+            payload={"title": "Apply for this Job"},
+            display_name="Apply for this Job"
+        )
+    ]
+
+    await cl.Message(content="Would you like to apply?", actions=actions).send()
+
 
 
 @cl.action_callback("apply_internal_job")
 async def on_apply(action):
-    await cl.Message(content="✅ Application submitted (mock). Congratulations!").send()
+    await cl.Message(content="Application submitted. Congratulations!").send()
     await cl.Message(content="You can continue exploring other matches or update your profile anytime.").send()

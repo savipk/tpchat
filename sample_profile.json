@@ -3,14 +3,14 @@
   "userId": "8f8a9c04-51a3-49f4-bb63-93b6fff4d9f5",
   "externalSourceId": "8f8a9c04-51a3-49f4-bb63-93b6fff4d9f5",
   "externalSourceType": "HR_DATA_MESH",
-  "email": "travis.wilson@ubs.com",
+  "email": "john.doe@ubs.com",
   "core": {
     "name": {
       "salutation": "Ms",
-      "legalFirstName": "Travis",
-      "legalLastName": "wilson",
-      "businessFirstName": "Travis",
-      "businessLastName": "Wilson"
+      "legalFirstName": "John",
+      "legalLastName": "Doe",
+      "businessFirstName": "John",
+      "businessLastName": "Doe"
     },
     "rank": {
       "code": "DI",
