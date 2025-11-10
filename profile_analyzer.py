@@ -97,8 +97,6 @@ def profile_analyzer(profile: Dict[str, Any],
 
 if __name__ == "__main__":
     import json
-
-    # Load mock profile from file or inline dict
     from pathlib import Path
 
     # path profile 
