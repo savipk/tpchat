@@ -209,5 +209,5 @@ __marimo__/
 .chainlit/
 .github/
 .files/
-data/
+data/data.db
 .DS_Store
