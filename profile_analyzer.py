@@ -1,15 +1,7 @@
-"""
-profile_analyzer.py
--------------------
-Analyzes a user's MyCareer profile and recommends next actions.
-"""
-
 from typing import Dict, Any, List
-
 
 def profile_analyzer(profile: Dict[str, Any],
                      completion_threshold: int = 80) -> Dict[str, Any]:
-    """Analyze a user's career profile for completeness and suggest next steps."""
 
     core = profile.get("core", {})
     score = 0
@@ -102,9 +94,7 @@ def profile_analyzer(profile: Dict[str, Any],
     }
 
 
-# -------------------------------
-# Demo runner for local testing
-# -------------------------------
+
 if __name__ == "__main__":
     import json
 
@@ -112,7 +102,7 @@ if __name__ == "__main__":
     from pathlib import Path
 
     # Sample path for your provided profile (can paste directly here)
-    profile_path = Path("sample_profile.json")
+    profile_path = Path("data/sample_profile.json")
 
     if profile_path.exists():
         profile = json.loads(profile_path.read_text())
