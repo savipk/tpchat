@@ -1,19 +1,10 @@
-"""
-chainlit_app.py
----------------
-Prototype chat integrating `profile_analyzer` tool.
-Chainlit 2.8.3 compatible.
-Uses in-memory state (no Redis) and shows agentic next-step suggestions
-with human-readable button labels.
-"""
-
 import chainlit as cl
 import json
 from typing import Dict, Any
 from profile_analyzer import profile_analyzer
 
 # -----------------------------
-# Mock state (in-memory)
+# state (in-memory)
 # -----------------------------
 session_state: Dict[str, Any] = {
     "user_id": None,
@@ -70,7 +61,6 @@ async def render_result(result: Dict[str, Any]):
 
     await cl.Message(content=md).send()
 
-    # Proper label rendering (Chainlit 2.8.3)
     buttons = []
     for a in next_actions:
         label = TOOL_LABELS.get(a["tool"], a["title"])
@@ -101,23 +91,7 @@ async def start():
 # -----------------------------
 # Action callbacks
 # -----------------------------
-@cl.action_callback("infer_skills")
-async def on_infer_skills(action):
-    await cl.Message(content="Inferring skills based on your profile...").send()
-    session_state["profile"]["core"]["skills"] = {
-        "topSkills": ["Leadership", "Java", "Compliance"]
-    }
-    result = profile_analyzer(session_state["profile"])
-    await render_result(result)
 
-@cl.action_callback("set_preferences")
-async def on_set_preferences(action):
-    await cl.Message(content="Setting career preferences...").send()
-    core = session_state["profile"]["core"]
-    core["careerAspirationPreference"] = {"preferredAspirations": []}
-    core["careerLocationPreference"] = {"preferredRelocationRegions": []}
-    result = profile_analyzer(session_state["profile"])
-    await render_result(result)
 
 @cl.action_callback("get_matches")
 async def on_get_matches(action):
@@ -166,7 +140,4 @@ async def on_hm_email(action):
     ]
     await cl.Message(content="Would you like to apply?", actions=buttons).send()
 
-@cl.action_callback("apply_internal_job")
-async def on_apply(action):
-    await cl.Message(content="✅ Application submitted. Congratulations!").send()
-    await cl.Message(content="You can continue exploring other matches or update your profile anytime.").send()
+
