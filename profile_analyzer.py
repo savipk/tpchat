@@ -101,13 +101,13 @@ if __name__ == "__main__":
     # Load mock profile from file or inline dict
     from pathlib import Path
 
-    # Sample path for your provided profile (can paste directly here)
+    # path profile 
     profile_path = Path("data/sample_profile.json")
 
     if profile_path.exists():
         profile = json.loads(profile_path.read_text())
     else:
-        # minimal fallback if no file
+        # fallback if no file found
         profile = {"core": {"experience": {}, "qualification": {}}}
 
     result = profile_analyzer(profile)
