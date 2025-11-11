@@ -14,27 +14,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_users_identifier ON users(identifier);
 -- THREADS
 CREATE TABLE IF NOT EXISTS threads (
   id TEXT PRIMARY KEY,
-  userId TEXT NOT NULL,
-  userIdentifier TEXT,          -- required by data layer queries
+  userId TEXT,                     -- <- was NOT NULL
+  userIdentifier TEXT,
   name TEXT,
   createdAt TEXT NOT NULL,
-  metadata TEXT,                -- JSON as TEXT
-  tags TEXT,                    -- required by data layer queries
+  metadata TEXT,
+  tags TEXT,
   FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_threads_user ON threads(userId, createdAt);
 
--- STEPS (messages / tool steps)
+-- STEPS
 CREATE TABLE IF NOT EXISTS steps (
   id TEXT PRIMARY KEY,
   name TEXT,
-  type TEXT,                    -- "user", "assistant", "tool", etc.
+  type TEXT,
   threadId TEXT NOT NULL,
-  parentId TEXT,                -- NEW: link nested steps
+  parentId TEXT,
   streaming BOOLEAN DEFAULT 0,
   waitForAnswer BOOLEAN DEFAULT 0,
   isError BOOLEAN DEFAULT 0,
-  metadata TEXT,                -- JSON as TEXT
+  metadata TEXT,
   tags TEXT,
   input TEXT,
   output TEXT,
@@ -43,12 +42,12 @@ CREATE TABLE IF NOT EXISTS steps (
   end TEXT,
   generation TEXT,
   showInput BOOLEAN DEFAULT 1,
+  defaultOpen BOOLEAN DEFAULT 0,   -- <- add this line
   language TEXT,
   FOREIGN KEY (threadId) REFERENCES threads(id) ON DELETE CASCADE,
   FOREIGN KEY (parentId) REFERENCES steps(id) ON DELETE SET NULL
 );
-CREATE INDEX IF NOT EXISTS idx_steps_thread ON steps(threadId, createdAt);
-CREATE INDEX IF NOT EXISTS idx_steps_parent ON steps(parentId);
+
 
 -- ELEMENTS (files, images, audio, etc.)
 CREATE TABLE IF NOT EXISTS elements (

@@ -1,2 +1,5 @@
 chainlit
 jsonschema
+sqlalchemy
+aiosqlite
+pysqlite3-binary

@@ -5,7 +5,6 @@ import chainlit as cl
 from chainlit.types import ThreadDict
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
 import asyncio
-from chainlit_app import TOOL_LABELS
 from profile_analyzer import profile_analyzer
 from utils import get_name_from_profile
 
@@ -98,12 +97,12 @@ async def _render_profile_analysis_result(result: Dict[str, Any]) -> None:
     if next_actions:
         md_lines.append("\n**Suggested Next Steps:**")
         for a in next_actions:
-            label = TOOL_LABELS.get(a, a)
+            label = TOOLS.get(a, a)
             md_lines.append(f"- {label}")
 
     await cl.Message(content="\n".join(md_lines)).send()
 
-    actions = [cl.Action(name=a, label=TOOL_LABELS.get(a, a), payload={}) for a in next_actions]
+    actions = [cl.Action(name=a, label=TOOLS.get(a, a), payload={}) for a in next_actions]
     if actions:
         await cl.Message(content="Choose a next step:", actions=actions).send()
 
@@ -174,7 +173,7 @@ async def on_draft_hm_email(action: cl.Action):
     await cl.Message(content=md).send()
     await cl.Message(
         "Would you like to see internal matches now?",
-        actions=[cl.Action(name="present_matches", label=TOOL_LABELS["present_matches"], payload={})],
+        actions=[cl.Action(name="get_matches", label=TOOLS["get_matches"]["label"], payload={})],
     ).send()
 
 @cl.action_callback("infer_skills")
