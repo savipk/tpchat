@@ -7,10 +7,10 @@
   "core": {
     "name": {
       "salutation": "Ms",
-      "legalFirstName": "John",
-      "legalLastName": "Doe",
-      "businessFirstName": "John",
-      "businessLastName": "Doe"
+      "legalFirstName": "Travis",
+      "legalLastName": "Scott",
+      "businessFirstName": "Travis",
+      "businessLastName": "Scott"
     },
     "rank": {
       "code": "DI",
