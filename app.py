@@ -1,136 +1,97 @@
+"""
+MyCareer Employee Experience Agentic Assistant
+Chainlit-based conversational UI with LLM-powered intent detection and tool orchestration.
+"""
+
 import os
 import json
 from typing import Dict, Any, List, Optional
 import chainlit as cl
 from chainlit.types import ThreadDict
 from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
-import asyncio
-from profile_analyzer import profile_analyzer
+
+# Import our modules
+from agent import get_agent
+from context_manager import get_context_manager, AgentContext
+from tools import execute_tool
 from utils import get_name_from_profile
+import prompts
+
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
 
 SAMPLE_PROFILE_PATH = os.getenv("SAMPLE_PROFILE_PATH", "data/sample_profile.json")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 
-TOOLS: Dict[str, Dict[str, Any]] = {
+# Tool display information
+TOOL_DISPLAY_INFO = {
     "profile_analyzer": {
-        "name": "profile_analyzer",
-        "payload": {},
-        "icon": "public/settings.svg",
         "label": "Analyze my profile",
-        "tooltip": "Analyze my profile to assess completeness, missing/insufficient sections"
-    },
-    "ask_jd_qa": {
-        "name": "ask_jd_qa",
-        "payload": {},
-        "icon": "public/question.svg",
-        "label": "Ask about a job posting",
-        "tooltip": "Q&A over a selected job posting"
+        "icon": "📊",
+        "tooltip": "Analyze profile completeness and get improvement suggestions"
     },
     "update_profile": {
-        "name": "update_profile",
-        "payload": {},
-        "icon": "public/settings.svg",
         "label": "Update my profile",
-        "tooltip": "Update a profile field"
+        "icon": "✏️",
+        "tooltip": "Update profile sections (skills, experience, etc.)"
     },
     "infer_skills": {
-        "name": "infer_skills",
-        "payload": {},
-        "icon": "public/brain.svg",
-        "label": "Suggest skills from my profile",
-        "tooltip": "Suggest skills from my profile, return primary/additional lists"
+        "label": "Suggest skills",
+        "icon": "🧠",
+        "tooltip": "Get AI-suggested skills based on your experience"
     },
     "get_matches": {
-        "name": "get_matches",
-        "payload": {},
-        "icon": "public/search.svg",
         "label": "Find matching jobs",
-        "tooltip": "Find matching jobs based on my profile"
+        "icon": "🔍",
+        "tooltip": "Find job opportunities that match your profile"
+    },
+    "ask_jd_qa": {
+        "label": "Ask about a job",
+        "icon": "❓",
+        "tooltip": "Ask questions about a specific job posting"
     },
     "draft_email": {
-        "name": "draft_email",
-        "payload": {},
-        "icon": "public/email.svg",
         "label": "Draft a message",
-        "tooltip": "Draft a message to Hiring Manager or Recruiter"
-    },
+        "icon": "✉️",
+        "tooltip": "Draft an email to hiring manager or recruiter"
+    }
 }
 
-session_state: Dict[str, Any] = {
-    "user_id": None,
-    "profile": None,
-    "last_result": None
-}
+
+# ============================================================================
+# DATA LAYER AND AUTH
+# ============================================================================
 
 @cl.data_layer
 def get_data_layer():
+    """Configure SQLite data layer for chat history."""
     return SQLAlchemyDataLayer(conninfo="sqlite+aiosqlite:///./data/data.db")
+
 
 @cl.password_auth_callback
 def auth(username: str, password: str):
+    """Simple password authentication."""
     if username == os.getenv("CL_ADMIN_USER", "admin") and password == os.getenv("CL_ADMIN_PASS", "admin"):
         return cl.User(identifier=username, metadata={"role": "admin"})
     return None
 
-def _load_json(path: str) -> Dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
 
-def _get_profile() -> Dict[str, Any]:
-    return _load_json(SAMPLE_PROFILE_PATH)
-
-
-async def _render_profile_analysis_result(result: Dict[str, Any]) -> None:
-    score = result.get("completionScore")
-    missing = result.get("missingSections", [])
-    insights = result.get("insights", [])
-    next_actions = result.get("nextActions", [])
-
-    md_lines: List[str] = [f"### Profile Analysis", f"**Completion Score:** {score}%"]
-    if missing:
-        md_lines.append(f"\n**Missing Sections:** {', '.join(missing)}")
-    if insights:
-        md_lines.append("\n**Insights:**")
-        for i in insights:
-            area = i.get("area", "").title()
-            note = i.get("note", "")
-            md_lines.append(f"- *{area}*: {note}")
-    if next_actions:
-        md_lines.append("\n**Suggested Next Steps:**")
-        for a in next_actions:
-            label = TOOLS.get(a, a)
-            md_lines.append(f"- {label}")
-
-    await cl.Message(content="\n".join(md_lines)).send()
-
-    actions = [cl.Action(name=a, label=TOOLS.get(a, a), payload={}) for a in next_actions]
-    if actions:
-        await cl.Message(content="Choose a next step:", actions=actions).send()
-
-async def get_matches(profile: Dict[str, Any]) -> None:
-    async with cl.Step("Talent Profile to find matching jobs"):
-        await asyncio.sleep(1)  
-        matches = [
-            {"role": "Senior Data Scientist, NLP", "job_id": "2144332", "score": 88},
-            {"role": "ML Engineer, RAG Systems", "job_id": "2037913", "score": 84},
-        ]
-        md = ["### Top Job Matches"]
-        for m in matches:
-            md.append(f"- **{m['role']}**  \n  ID: `{m['job_id']}`  •  Score: **{m['score']}%**")
-        await cl.Message(content="\n".join(md)).send()
-        actions = [
-            cl.Action(name=TOOLS["ask_jd_qa"]["name"], label=TOOLS["ask_jd_qa"]["label"], payload={"job_ids": [m['job_id'] for m in matches]}),
-            cl.Action(name=TOOLS["draft_email"]["name"], label=TOOLS["draft_email"]["label"], payload={})
-        ]
-        await cl.Message(content="Choose the next step:", actions=actions).send()
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
 
 def load_profile() -> Dict[str, Any]:
-    """Load profile JSON"""
+    """Load user profile from JSON file."""
     try:
-        with open(SAMPLE_PROFILE_PATH, "r") as f:
+        with open(SAMPLE_PROFILE_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
+        print(f"Warning: Profile file not found at {SAMPLE_PROFILE_PATH}")
         return {
             "core": {
+                "name": {"businessFirstName": "User"},
                 "experience": {},
                 "qualification": {},
                 "skills": {},
@@ -138,122 +99,384 @@ def load_profile() -> Dict[str, Any]:
             }
         }
 
-# Actions
-@cl.action_callback("analyze_profile")
-async def on_analyze_profile(action: cl.Action):
-    profile = cl.user_session.get("profile") or _get_profile()
-    result = profile_analyzer(profile)
-    cl.user_session.set("profile_analysis_result", result)
-    await _render_profile_analysis_result(result)
 
-@cl.action_callback("get_matches")
-async def on_get_matches(action: cl.Action):
-    profile = cl.user_session.get("profile") or _get_profile()
-    await get_matches(profile)
-
-@cl.action_callback("ask_jd_qa")
-async def on_ask_jd_qa(action: cl.Action):
-    #create a list of actions for the job ids
-    job_ids = action.payload.get("job_ids")
-    actions = [cl.Action(name=job_id, label=f"Ask about job id: {job_id}", payload={"job_id": job_id}) for job_id in job_ids]
-    await cl.Message(content="Choose a job to ask about:", actions=actions).send()
-
-@cl.action_callback("draft_email")
-async def on_draft_hm_email(action: cl.Action):
-    profile = cl.user_session.get("profile") or _get_profile()
-    name = get_name_from_profile(profile)
-    md = (
-        "### Draft Email to Hiring Manager\n"
-        f"Subject: Application - {name}\n\n"
-        "Hello Hiring Manager,\n\n"
-        "I am excited about the opportunity and believe my background aligns well with the role.\n"
-        "I would welcome a chance to discuss how I can contribute.\n\n"
-        f"Best regards,\n{name}"
-    )
-    await cl.Message(content=md).send()
-    await cl.Message(
-        "Would you like to see internal matches now?",
-        actions=[cl.Action(name="get_matches", label=TOOLS["get_matches"]["label"], payload={})],
-    ).send()
-
-@cl.action_callback("infer_skills")
-async def on_infer_skills(action):
-    await cl.Message(content="Inferring skills based on your profile...").send()
-    session_state["profile"]["core"]["skills"] = {
-        "topSkills": ["Leadership", "Java", "Compliance"]
-    }
-    result = profile_analyzer(session_state["profile"])
-    await _render_profile_analysis_result(result)
-
-@cl.action_callback("set_preferences")
-async def on_set_preferences(action):
-    await cl.Message(content="Setting career preferences...").send()
-    core = session_state["profile"]["core"]
-    core["careerAspirationPreference"] = {"preferredAspirations": []}
-    core["careerLocationPreference"] = {"preferredRelocationRegions": []}
-    result = profile_analyzer(session_state["profile"])
-    await _render_profile_analysis_result(result)
+def get_user_context() -> AgentContext:
+    """Get or create agent context for current user session."""
+    context_manager = get_context_manager()
+    user = cl.user_session.get("user")
+    user_id = user.identifier if user else "default_user"
     
-@cl.action_callback("apply_internal_job")
-async def on_apply(action):
-    await cl.Message(content="✅ Application submitted. Congratulations!").send()
-    await cl.Message(content="You can continue exploring other matches or update your profile anytime.").send()
+    # Get or create context
+    context = cl.user_session.get("agent_context")
+    if not context:
+        profile = cl.user_session.get("profile")
+        context = context_manager.get_or_create_context(user_id, profile)
+        cl.user_session.set("agent_context", context)
+    
+    return context
 
-# Chat lifecycle
+
+async def send_response_with_actions(
+    response_text: str,
+    action_buttons: List[Dict[str, Any]],
+    show_buttons_separately: bool = True
+):
+    """
+    Send response text and action buttons to the user.
+    
+    Args:
+        response_text: Text response to display
+        action_buttons: List of action button definitions
+        show_buttons_separately: If True, show buttons in a separate message
+    """
+    # Send main response
+    await cl.Message(content=response_text).send()
+    
+    # Create Chainlit action objects
+    if action_buttons:
+        cl_actions = []
+        for btn in action_buttons:
+            action = cl.Action(
+                name=btn["name"],
+                label=btn["label"],
+                payload=btn.get("payload", {}),
+                description=btn.get("tooltip", "")
+            )
+            cl_actions.append(action)
+        
+        # Send actions
+        if show_buttons_separately:
+            await cl.Message(
+                content="**Choose your next action:**",
+                actions=cl_actions
+            ).send()
+        else:
+            # Attach to last message (not currently supported in Chainlit)
+            await cl.Message(content="", actions=cl_actions).send()
+
+
+# ============================================================================
+# CHAINLIT LIFECYCLE HOOKS
+# ============================================================================
+
 @cl.set_starters
 async def set_starters():
+    """Set starter prompts for new chat sessions."""
     return [
         cl.Starter(
             label="Find Matching Jobs",
             message="Can you find matching jobs for me?",
-            icon="public/search.svg"
-            # command="get_matches"
-        ),
-
-        cl.Starter(
-            label="Help me update my profile",
-            message="Help me update my profile",
-            icon="public/write.svg",
+            icon="🔍"
         ),
         cl.Starter(
-            label="Set my skills in MyProfile",
-            message="Set my skills in MyProfile",
-            icon="public/skills.svg"
+            label="Analyze My Profile",
+            message="Analyze my profile",
+            icon="📊"
         ),
         cl.Starter(
-            label="Show me all actions",
-            message="Show me all actions",
-            icon="public/list.svg"
+            label="Suggest Skills",
+            message="What skills should I add to my profile?",
+            icon="🧠"
+        ),
+        cl.Starter(
+            label="Show All Actions",
+            message="What can you help me with?",
+            icon="❓"
         )
     ]
 
 
 @cl.on_chat_start
 async def on_chat_start():
-    # await cl.Message(
-    #     "Welcome to *MYCareer Agentic Chat*"
-    # ).send()
-    # Load user profile 
-    print("Loading user profile.")
-    profile = _get_profile()
+    """Initialize chat session."""
+    # Load user profile
+    print("Loading user profile...")
+    profile = load_profile()
     cl.user_session.set("profile", profile)
-
-
-@cl.on_message
-async def on_message(msg: cl.Message):
-        content = (msg.content or "").strip()
-        if content == "Can you find matching jobs for me?":
-            await get_matches(cl.user_session.get("profile"))
-        elif content == "Help me update my profile":
-            await _render_profile_analysis_result(cl.user_session.get("profile_analysis_result"))
-        elif content == "Set my skills in MyProfile":
-            await cl.Message(f"Pending Implementation: Set my skills in MyProfile").send()
-        elif content == "Show me all actions":
-            actions = [cl.Action(name=a, label=TOOLS[a]["label"], payload={}) for a in TOOLS.keys()]
-            await cl.Message(content="Here are all the actions you can take:", actions=actions).send()
+    
+    # Initialize agent context
+    context = get_user_context()
+    
+    # Get user name
+    user_name = get_name_from_profile(profile)
+    
+    # Run initial profile analysis
+    try:
+        agent = get_agent(OPENAI_MODEL)
+        analysis_result = execute_tool("profile_analyzer", profile)
+        context.update_profile_analysis(analysis_result)
+        
+        # Generate welcome message
+        try:
+            prompt = prompts.WELCOME_MESSAGE_PROMPT.format(
+                completion_score=context.profile_completion_score,
+                user_name=user_name,
+                missing_sections=", ".join(context.missing_sections) if context.missing_sections else "None"
+            )
+            from langchain_core.messages import SystemMessage, HumanMessage
+            messages = [
+                SystemMessage(content=prompts.RESPONSE_GENERATION_SYSTEM_PROMPT),
+                HumanMessage(content=prompt)
+            ]
+            response = agent.llm.invoke(messages)
+            welcome_text = response.content
+        except Exception as e:
+            print(f"Welcome message generation error: {e}")
+            welcome_text = (
+                f"Welcome to **MyCareer Assistant**, {user_name}! 👋\n\n"
+                f"Your profile is {context.profile_completion_score}% complete. "
+                "I'm here to help you find great job opportunities and improve your profile.\n\n"
+                "What would you like to do today?"
+            )
+        
+        # Determine initial actions based on profile state
+        if context.profile_completion_score < 50:
+            # Profile needs critical improvement
+            initial_actions = ["profile_analyzer", "infer_skills", "update_profile"]
         else:
-            await cl.Message(f"Pending Implementation: {content}").send()
+            # Profile is reasonable, show default actions
+            initial_actions = ["get_matches", "profile_analyzer", "infer_skills"]
+        
+        # Create action buttons
+        action_buttons = []
+        for tool_name in initial_actions:
+            tool_info = TOOL_DISPLAY_INFO.get(tool_name, {})
+            action_buttons.append({
+                "name": tool_name,
+                "label": tool_info.get("label", tool_name),
+                "icon": tool_info.get("icon", "🔧"),
+                "tooltip": tool_info.get("tooltip", "")
+            })
+        
+        # Send welcome message and actions
+        await send_response_with_actions(welcome_text, action_buttons)
+    
+    except Exception as e:
+        print(f"Error during chat initialization: {e}")
+        await cl.Message(
+            content="Welcome to MyCareer Assistant! I'm here to help you with your career. What would you like to do?"
+        ).send()
+
 
 @cl.on_chat_resume
 async def on_chat_resume(thread: ThreadDict):
-    await cl.Message("Welcome back. You can continue where you left off.").send()
+    """Resume previous chat session."""
+    # Reload profile and context
+    profile = load_profile()
+    cl.user_session.set("profile", profile)
+    
+    context = get_user_context()
+    
+    # Generate resume message
+    try:
+        agent = get_agent(OPENAI_MODEL)
+        prompt = prompts.SESSION_RESUME_PROMPT.format(
+            last_action=context.last_tool_executed or "None",
+            pending_items="None"
+        )
+        from langchain_core.messages import SystemMessage, HumanMessage
+        messages = [
+            SystemMessage(content=prompts.RESPONSE_GENERATION_SYSTEM_PROMPT),
+            HumanMessage(content=prompt)
+        ]
+        response = agent.llm.invoke(messages)
+        resume_text = response.content
+    except Exception as e:
+        print(f"Resume message generation error: {e}")
+        resume_text = "Welcome back! You can continue where you left off."
+    
+    await cl.Message(content=resume_text).send()
+
+
+# ============================================================================
+# MESSAGE HANDLER (Main conversation flow)
+# ============================================================================
+
+@cl.on_message
+async def on_message(msg: cl.Message):
+    """
+    Handle user text input.
+    
+    Flow: User input → Intent detection → Tool mapping → Response with action buttons
+    """
+    user_input = (msg.content or "").strip()
+    
+    if not user_input:
+        await cl.Message(content="Please enter a message.").send()
+        return
+    
+    # Get context
+    context = get_user_context()
+    
+    # Add message to context
+    context.add_message("user", user_input)
+    
+    # Show thinking indicator
+    async with cl.Step(name="Analyzing your request", type="tool") as step:
+        try:
+            # Get agent and process input
+            agent = get_agent(OPENAI_MODEL)
+            result = agent.process_user_input(user_input, context)
+            
+            step.output = f"Mapped to: {result.get('mapped_tool', 'N/A')} (confidence: {result.get('confidence', 0):.2f})"
+        
+        except Exception as e:
+            print(f"Error processing user input: {e}")
+            result = {
+                "response_text": "I encountered an issue processing your request. Please try again or choose an action below.",
+                "action_buttons": [
+                    {"name": "get_matches", "label": TOOL_DISPLAY_INFO["get_matches"]["label"], "icon": "🔍", "tooltip": ""},
+                    {"name": "profile_analyzer", "label": TOOL_DISPLAY_INFO["profile_analyzer"]["label"], "icon": "📊", "tooltip": ""},
+                    {"name": "infer_skills", "label": TOOL_DISPLAY_INFO["infer_skills"]["label"], "icon": "🧠", "tooltip": ""}
+                ],
+                "confidence": 0.0
+            }
+    
+    # Add assistant response to context
+    context.add_message("assistant", result["response_text"], {
+        "confidence": result.get("confidence", 0.0),
+        "mapped_tool": result.get("mapped_tool")
+    })
+    
+    # Send response and action buttons
+    await send_response_with_actions(
+        result["response_text"],
+        result.get("action_buttons", [])
+    )
+
+
+# ============================================================================
+# ACTION CALLBACKS (Button click handlers)
+# ============================================================================
+
+@cl.action_callback("profile_analyzer")
+async def on_profile_analyzer(action: cl.Action):
+    """Execute profile analyzer tool."""
+    await execute_tool_action("profile_analyzer", {})
+
+
+@cl.action_callback("get_matches")
+async def on_get_matches(action: cl.Action):
+    """Execute get matches tool."""
+    # Extract any parameters from payload
+    filters = action.payload.get("filters")
+    search_text = action.payload.get("search_text")
+    
+    params = {}
+    if filters:
+        params["filters"] = filters
+    if search_text:
+        params["search_text"] = search_text
+    
+    await execute_tool_action("get_matches", params)
+
+
+@cl.action_callback("infer_skills")
+async def on_infer_skills(action: cl.Action):
+    """Execute infer skills tool."""
+    await execute_tool_action("infer_skills", {})
+
+
+@cl.action_callback("update_profile")
+async def on_update_profile(action: cl.Action):
+    """Execute update profile tool."""
+    # For now, just update skills section
+    params = action.payload or {"section": "skills"}
+    await execute_tool_action("update_profile", params)
+
+
+@cl.action_callback("ask_jd_qa")
+async def on_ask_jd_qa(action: cl.Action):
+    """Execute ask JD Q&A tool."""
+    # Check if job_id is in payload
+    job_id = action.payload.get("job_id")
+    question = action.payload.get("question")
+    
+    if job_id and question:
+        # Execute directly
+        await execute_tool_action("ask_jd_qa", {"job_id": job_id, "question": question})
+    else:
+        # Ask user for job ID and question
+        await cl.Message(
+            content="Please provide the job ID and your question. For example:\n\n"
+                    "\"Tell me about the salary for job 3286618BR\""
+        ).send()
+        
+        # Set context to expect Q&A input
+        context = get_user_context()
+        context.pending_clarification = True
+        context.current_intent = "ask_jd_qa"
+
+
+@cl.action_callback("draft_email")
+async def on_draft_email(action: cl.Action):
+    """Execute draft email tool."""
+    params = action.payload or {}
+    await execute_tool_action("draft_email", params)
+
+
+# ============================================================================
+# TOOL EXECUTION HELPER
+# ============================================================================
+
+async def execute_tool_action(tool_name: str, params: Dict[str, Any]):
+    """
+    Execute a tool and display results.
+    
+    Flow: Tool execution → Results → Response generation → Next action buttons
+    """
+    context = get_user_context()
+    
+    # Check special conditions
+    if tool_name == "get_matches" and not context.can_show_matches():
+        await cl.Message(
+            content=f"⚠️ Your profile completion score is {context.profile_completion_score}%, "
+                    "which is below the minimum threshold for job matching.\n\n"
+                    "Let's improve your profile first to get better matches!"
+        ).send()
+        
+        # Show profile improvement actions
+        action_buttons = [
+            {"name": "profile_analyzer", "label": TOOL_DISPLAY_INFO["profile_analyzer"]["label"], "icon": "📊", "tooltip": ""},
+            {"name": "infer_skills", "label": TOOL_DISPLAY_INFO["infer_skills"]["label"], "icon": "🧠", "tooltip": ""},
+            {"name": "update_profile", "label": TOOL_DISPLAY_INFO["update_profile"]["label"], "icon": "✏️", "tooltip": ""}
+        ]
+        await send_response_with_actions("Choose an action:", action_buttons, show_buttons_separately=False)
+        return
+    
+    # Show execution progress
+    async with cl.Step(name=f"Executing: {tool_name}", type="tool") as step:
+        try:
+            # Get agent
+            agent = get_agent(OPENAI_MODEL)
+            
+            # Execute tool
+            result = agent.execute_tool_action(tool_name, context, params)
+            
+            step.output = "✅ Completed"
+        
+        except Exception as e:
+            print(f"Tool execution error: {e}")
+            step.output = f"❌ Error: {str(e)}"
+            
+            await cl.Message(
+                content="I encountered an issue executing that action. Please try again or choose another action."
+            ).send()
+            return
+    
+    # Send results and next actions
+    response_text = result.get("response_text", "Action completed.")
+    action_buttons = result.get("action_buttons", [])
+    
+    await send_response_with_actions(response_text, action_buttons)
+
+
+# ============================================================================
+# ENTRY POINT
+# ============================================================================
+
+if __name__ == "__main__":
+    # This is for development/testing
+    # Production will use: chainlit run app.py
+    print("MyCareer Agentic Assistant")
+    print("Run with: chainlit run app.py")

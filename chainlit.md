@@ -1,14 +1,25 @@
-# Welcome to Chainlit! 🚀🤖
+# Welcome to MyCareer Assistant! 🚀
 
-Hi there, Developer! 👋 We're excited to have you on board. Chainlit is a powerful tool designed to help you prototype, debug and share applications built on top of LLMs.
+Your intelligent career companion powered by AI.
 
-## Useful Links 🔗
+## What I Can Help You With
 
-- **Documentation:** Get started with our comprehensive [Chainlit Documentation](https://docs.chainlit.io) 📚
-- **Discord Community:** Join our friendly [Chainlit Discord](https://discord.gg/k73SQ3FyUh) to ask questions, share your projects, and connect with other developers! 💬
+🔍 **Find Matching Jobs** - Discover opportunities that align with your profile and aspirations
 
-We can't wait to see what you create with Chainlit! Happy coding! 💻😊
+📊 **Analyze Your Profile** - Get insights on profile completeness and improvement areas
 
-## Welcome screen
+🧠 **Suggest Skills** - AI-powered skill recommendations based on your experience
 
-To modify the welcome screen, edit the `chainlit.md` file at the root of your project. If you do not want a welcome screen, just leave this file empty.
+✏️ **Update Your Profile** - Keep your career information current and comprehensive
+
+❓ **Job Q&A** - Get answers about specific job postings
+
+✉️ **Draft Messages** - Create professional emails to recruiters and hiring managers
+
+## How It Works
+
+1. **Chat Naturally** - Just type what you want to do in plain English
+2. **Choose Actions** - Click on recommended action buttons
+3. **Get Results** - Receive personalized insights and next steps
+
+Let's advance your career together!

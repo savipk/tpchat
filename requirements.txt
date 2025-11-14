@@ -1,5 +1,10 @@
-chainlit
+chainlit==2.8.4
 jsonschema
 sqlalchemy
 aiosqlite
-pysqlite3-binary
+azure-cosmos 
+azure-identity
+langchain==1.0.5
+langgraph==1.0.3
+langchain-openai>=0.3.0
+openai>=1.50.0
